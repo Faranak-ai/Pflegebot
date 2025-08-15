@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Pflege-Bot Schwester Miriam</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 2em; }
+    .chatbox { max-width: 600px; margin: auto; background: white; border-radius: 8px; padding: 1em; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .message { margin: 1em 0; }
+    .bot { color: #0a558c; font-weight: bold; }
+    .user { color: #14532d; }
+    input, button { padding: 0.5em; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <div class="chatbox" id="chat">
+    <div class="message bot">👩‍⚕️ Schwester Miriam: Guten Morgen! Ich beginne mit der &Uuml;bergabe. Zimmer 101: Herr Berger wurde gestern an der H&uuml;fte operiert. Er soll heute mit Gehhilfe aufstehen. Drainage entfernt. Vitalzeichen stabil.</div>
+  </div>
+  <div style="max-width: 600px; margin: auto; display: flex; gap: 0.5em;">
+    <input type="text" id="input" placeholder="Ihre Antwort hier..." style="flex:1;">
+    <button onclick="handleInput()">Senden</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+
+    function addMessage(text, sender) {
+      const div = document.createElement('div');
+      div.className = 'message ' + sender;
+      div.textContent = (sender === 'bot' ? '👩‍⚕️ Schwester Miriam: ' : '\u{1F464} ') + text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function handleInput() {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage(text, 'user');
+
+      let response = "K&ouml;nnten Sie das bitte wiederholen?";
+
+      if (text.toLowerCase().includes('langsam') || text.toLowerCase().includes('wiederholen')) {
+        response = "Herr Berger hatte gestern eine Operation an der H&uuml;fte. Heute soll er mit Hilfe aufstehen. Bitte benutzen Sie die Gehhilfe. Die Drainage wurde heute Morgen entfernt. Seine Werte sind stabil.";
+      } else if (text.toLowerCase().includes('was bedeutet') || text.toLowerCase().includes('palliativ')) {
+        response = "Palliativ bedeutet: Die Patientin ist schwer krank und nicht heilbar. Ziel ist es, Beschwerden zu lindern.";
+      } else if (text.toLowerCase().includes('weiter') || text.toLowerCase().includes('n&auml;chste')) {
+        response = "Zimmer 102: Frau Khatun ist palliativ. Schmerzmedikation nach Plan. Mundpflege und Lagerung alle zwei Stunden.";
+      } else {
+        response = "K&ouml;nnten Sie bitte Ihre Frage wiederholen oder pr&auml;zisieren?";
+      }
+
+      setTimeout(() => addMessage(response, 'bot'), 1000);
+      input.value = '';
+    }
+  </script>
+</body>
+</html>
