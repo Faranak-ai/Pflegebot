@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Pflege-Bot Schwester Lisa (B1)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root { --bg:#fdfdfd; --card:#ffffff; --bot:#7c2d12; --user:#14532d; }
+    body { font-family: system-ui, Arial, sans-serif; background: var(--bg); margin:0; padding: 2rem 1rem; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .title { text-align:center; margin-bottom: 1rem; }
+    .chatbox { background: var(--card); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 20px rgba(0,0,0,.08); min-height: 320px; max-height: 60vh; overflow: auto; }
+    .message { margin: .75rem 0; line-height: 1.45; }
+    .bot { color: var(--bot); font-weight: 600; }
+    .user { color: var(--user); }
+    .bar { display:flex; gap:.5rem; margin-top: .75rem; flex-wrap: wrap; }
+    input[type=text] { flex:1; min-width: 240px; padding:.75rem .9rem; border-radius: 10px; border: 1px solid #cbd5e1; }
+    button { padding:.6rem .9rem; border-radius:10px; border:0; background:#7c3aed; color:white; font-weight:600; cursor:pointer; }
+    button.secondary { background:#475569; }
+    button:hover { filter: brightness(.95); }
+    .toolbar, .controls, .glossary { display:flex; gap:.5rem; justify-content:center; flex-wrap: wrap; margin-top:.75rem; }
+    .note { font-size:.85rem; color:#475569; text-align:center; margin-bottom:.5rem; }
+    .controls button { background:#64748b; }
+    .glossary button { background:#334155; font-size:.85rem; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">
+    <h2>👩‍⚕️ Pflege‑Bot „Schwester Lisa“ – Übergabe (B1)</h2>
+    <div class="note">Nutzen Sie Eingabe, Sprache oder Buttons.</div>
+  </div>
+
+  <div class="toolbar">
+    <button id="btnSpeakLast" class="secondary">🔊 Vorlesen</button>
+    <button id="btnAutoSpeak" class="secondary">🔊 Auto‑Vorlesen: AUS</button>
+    <button id="btnMic" class="secondary">🎙️ Spracheingabe: START</button>
+  </div>
+
+  <div class="chatbox" id="chat"></div>
+  <div class="bar">
+    <input id="input" type="text" placeholder="Ihre Nachricht … (z. B. „langsam“ oder „was bedeutet Dialyse?“)" />
+    <button id="send">Senden</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="nextPatient()">➡️ Weiter</button>
+    <button onclick="prevPatient()">⬅️ Zurück</button>
+    <button onclick="speakSlow()">🐢 Langsam</button>
+    <button onclick="addMessage(lastBot,'bot')">🔁 Wiederholen</button>
+    <button onclick="help()">ℹ️ Hilfe</button>
+  </div>
+
+  <div class="glossary">
+    <button onclick="explain('Pneumonie')">Pneumonie</button>
+    <button onclick="explain('Diabetes')">Diabetes</button>
+    <button onclick="explain('Hemiparese')">Hemiparese</button>
+    <button onclick="explain('Dialyse')">Dialyse</button>
+    <button onclick="explain('Dekubitus')">Dekubitus</button>
+  </div>
+</div>
+
+<script>
+// --- Patientendaten ---
+const patients = [
+  {
+    room: "201",
+    name: "Frau Novak",
+    fast: "Frau Novak mit Pneumonie, Tag 2 der Antibiotikatherapie. Atemtraining und Inhalationen. SpO₂-Ziel 92–96 % mit Sauerstoff 2 L/min.",
+    slow: "Frau Novak hat eine Lungenentzündung und erhält seit zwei Tagen Antibiotika. Bitte führen Sie Atemtraining und Inhalationen durch. Wenn nötig, geben Sie Sauerstoff über die Nasenbrille mit zwei Litern pro Minute. Ziel ist eine Sauerstoffsättigung zwischen 92 und 96 %.",
+  },
+  {
+    room: "202",
+    name: "Herr Meier",
+    fast: "Herr Meier mit Diabetes mellitus Typ 2. Insulin nach Plan, Blutzuckerkontrollen vor den Mahlzeiten.",
+    slow: "Herr Meier hat Diabetes Typ 2. Er bekommt Insulin, das nach Plan gespritzt werden muss. Messen Sie bitte seinen Blutzucker vor den Mahlzeiten und geben Sie das Insulin nach Plan. Auch die Ernährung ist wichtig: keine zuckerreichen Speisen.",
+  },
+  {
+    room: "203",
+    name: "Frau Ibrahim",
+    fast: "Frau Ibrahim nach Schlaganfall mit Hemiparese links. Physiotherapie, Logopädie. Lagerung rechts, Aspirationsprophylaxe.",
+    slow: "Frau Ibrahim hatte einen Schlaganfall. Die linke Körperhälfte ist gelähmt. Deshalb muss sie überwiegend auf die rechte Seite gelagert werden. Achten Sie darauf, dass sie sich nicht verschluckt, also Aspirationsprophylaxe. Zusätzlich hat sie Physiotherapie und Sprachübungen bei der Logopädin.",
+  },
+  {
+    room: "204",
+    name: "Herr Schuster",
+    fast: "Herr Schuster mit chronischer Niereninsuffizienz, Dialyse Mo/Mi/Fr. Flüssigkeitsbilanz streng, Gewichtskontrolle, Shunt-Arm schonen.",
+    slow: "Herr Schuster hat eine chronische Nierenschwäche. Er geht montags, mittwochs und freitags zur Hämodialyse. Bitte führen Sie eine strenge Flüssigkeitsbilanz, wiegen Sie ihn täglich und schonen Sie unbedingt seinen Shunt-Arm – keine Blutdruckmessung, keine Blutabnahme dort.",
+  },
+  {
+    room: "205",
+    name: "Frau Petrova",
+    fast: "Frau Petrova mit Dekubitus Stadium II im Sakralbereich. Wundversorgung nach Plan, Umlagerung alle 2 Stunden, Ernährung beachten.",
+    slow: "Frau Petrova hat ein Druckgeschwür am Kreuzbein, Stadium II. Sie bekommt Wundversorgung nach Verbandplan. Bitte lagern Sie sie alle zwei Stunden um und achten Sie auf eine eiweißreiche Ernährung, damit die Heilung gefördert wird.",
+  },
+];
+
+// Glossar
+const glossary = {
+  "pneumonie": "Pneumonie bedeutet Lungenentzündung, meist durch Bakterien oder Viren. Typische Symptome: Husten, Fieber, Atemnot.",
+  "diabetes": "Diabetes mellitus Typ 2 ist eine chronische Stoffwechselkrankheit. Der Blutzuckerspiegel ist zu hoch, oft ist Insulintherapie nötig.",
+  "hemiparese": "Hemiparese ist eine Halbseitenlähmung, häufig nach Schlaganfall.",
+  "dialyse": "Dialyse ist ein Blutreinigungsverfahren, das bei schwerer Nierenschwäche durchgeführt wird.",
+  "dekubitus": "Dekubitus ist ein Druckgeschwür durch langes Liegen. Es wird nach Stadien eingeteilt und muss regelmäßig versorgt werden."
+};
+
+// Chatlogik
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const btnSpeakLast = document.getElementById('btnSpeakLast');
+const btnAutoSpeak = document.getElementById('btnAutoSpeak');
+const btnMic = document.getElementById('btnMic');
+
+let current=0; let lastBot=\"\"; let autoSpeak=false;
+
+function addMessage(text, sender='bot'){const div=document.createElement('div');div.className='message '+sender;div.textContent=(sender==='bot'?'👩‍⚕️ Schwester Lisa: ':'👤 ')+text;chat.appendChild(div);chat.scrollTop=chat.scrollHeight;if(sender==='bot'){lastBot=text;if(autoSpeak)speak(text);}}
+function speak(text){try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='de-DE';u.rate=0.98;window.speechSynthesis.speak(u);}catch(e){console.error(e);}}
+
+let recognition=null,recognizing=false;
+function initSTT(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;const rec=new SR();rec.lang='de-DE';rec.onresult=(e)=>{const t=e.results[0][0].transcript;addMessage(t,'user');routeInput(t);};rec.onend=()=>{recognizing=false;btnMic.textContent='🎙️ Spracheingabe: START';};return rec;}
+function toggleSTT(){if(!recognition)recognition=initSTT();if(!recognition){alert('Spracheingabe nicht unterstützt.');return;}if(recognizing){recognition.stop();recognizing=false;btnMic.textContent='🎙️ Spracheingabe: START';}else{recognition.start();recognizing=true;btnMic.textContent='🛑 Spracheingabe: STOP';}}
+
+function intro(){addMessage(\"Guten Morgen! Ich bin Schwester Lisa. Ich beginne mit der Übergabe. Nutzen Sie Eingabe oder Buttons.\");speakFast();}
+function speakFast(){const p=patients[current];addMessage(`Zimmer ${p.room} – ${p.name}: ${p.fast}`);}
+function speakSlow(){const p=patients[current];addMessage(`Ich wiederhole langsamer: Zimmer ${p.room} – ${p.name}. ${p.slow}`);}
+function prevPatient(){current=(current-1+patients.length)%patients.length;speakFast();}
+function nextPatient(){current=(current+1)%patients.length;speakFast();}
+function explain(term){const key=term.toLowerCase().normalize('NFD').replace(/[^\wäöüß]/g,'');let found=null;for(const k in glossary){const norm=k.toLowerCase().normalize('NFD').replace(/[^\wäöüß]/g,'');if(key.includes(norm)||norm.includes(key)){found=k;break;}}if(found)addMessage(`${found[0].toUpperCase()+found.slice(1)}: ${glossary[found]}`);else addMessage(\"Diesen Begriff habe ich nicht im Glossar.\");}
+function help(){addMessage(\"Befehle: weiter · zurück · langsam · wiederholen · was bedeutet …? Oder nutzen Sie die Buttons.\");}
+
+sendBtn.onclick=handleInput; input.onkeydown=(e)=>{if(e.key==='Enter')handleInput();};
+btnSpeakLast.onclick=()=>{if(lastBot) speak(lastBot);};
+btnAutoSpeak.onclick=()=>{autoSpeak=!autoSpeak;btnAutoSpeak.textContent=autoSpeak?'🔊 Auto‑Vorlesen: EIN':'🔊 Auto‑Vorlesen: AUS';};
+btnMic.onclick=toggleSTT;
+
+function handleInput(){const t=input.value.trim();if(!t)return;addMessage(t,'user');input.value='';routeInput(t);}
+function routeInput(text){const t=text.toLowerCase();if(t.includes('weiter'))return nextPatient();if(t.includes('zurück')||t.includes('zurueck'))return prevPatient();if(t.includes('langsam'))return speakSlow();if(t.includes('wiederholen'))return addMessage(lastBot||'Ich wiederhole gern.','bot');if(t.startsWith('was bedeutet'))return explain(text.split(/was bedeutet/i)[1]||'');if(t.includes('hilfe'))return help();addMessage(\"Ich habe Sie verstanden. Nutzen Sie bitte die Steuer-Buttons oder schreiben Sie: weiter, zurück, langsam, wiederholen, was bedeutet …?\");}
+
+// Start
+intro();
+</script>
+</body>
+</html>
