@@ -2,36 +2,65 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Pflege-Bot Schwester Miriam (B1)</title>
+  <title>Pflege-Bot Schwester Miriam (B1) – mit Buttons & Sprache</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root { --bg:#f0f4f8; --card:#ffffff; --bot:#0a558c; --user:#14532d; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); margin:0; padding: 2rem 1rem; }
-    .wrap { max-width: 720px; margin: 0 auto; }
+    .wrap { max-width: 760px; margin: 0 auto; }
     .title { text-align:center; margin-bottom: 1rem; }
     .chatbox { background: var(--card); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 20px rgba(0,0,0,.08); min-height: 320px; max-height: 60vh; overflow: auto; }
     .message { margin: .75rem 0; line-height: 1.45; }
     .bot { color: var(--bot); font-weight: 600; }
     .user { color: var(--user); }
-    .bar { display:flex; gap:.5rem; margin-top: .75rem; }
-    input[type=text] { flex:1; padding:.75rem .9rem; border-radius: 10px; border: 1px solid #cbd5e1; }
-    button { padding:.75rem 1rem; border-radius:10px; border:0; background:#0ea5e9; color:white; font-weight:600; cursor:pointer; }
+    .bar { display:flex; gap:.5rem; margin-top: .75rem; flex-wrap: wrap; }
+    input[type=text] { flex:1; min-width: 240px; padding:.75rem .9rem; border-radius: 10px; border: 1px solid #cbd5e1; }
+    button { padding:.6rem .9rem; border-radius:10px; border:0; background:#0ea5e9; color:white; font-weight:600; cursor:pointer; }
+    button.secondary { background:#475569; }
     button:hover { filter: brightness(.95); }
     .hints { font-size:.9rem; color:#334155; margin-top:.75rem; }
-    .pill { display:inline-block; background:#e2e8f0; border-radius:999px; padding:.2rem .6rem; margin:.1rem; }
+    .toolbar, .controls, .glossary { display:flex; gap:.5rem; justify-content:center; flex-wrap: wrap; margin-top:.75rem; }
+    .note { font-size:.85rem; color:#475569; text-align:center; margin-bottom:.5rem; }
+    .controls button { background:#64748b; }
+    .glossary button { background:#334155; font-size:.85rem; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="title">
     <h2>👩‍⚕️ Pflege‑Bot „Schwester Miriam“ – Übergabe (B1)</h2>
-    <div class="hints">Tipp: Schreibe <span class="pill">weiter</span> · <span class="pill">zurück</span> · <span class="pill">langsam</span> · <span class="pill">wiederholen</span> · <span class="pill">hilfe</span> oder <span class="pill">was bedeutet …?</span></div>
+    <div class="hints">Nutzen Sie Eingabe, Sprache oder Buttons.</div>
   </div>
+
+  <div class="toolbar">
+    <button id="btnSpeakLast" class="secondary">🔊 Vorlesen</button>
+    <button id="btnAutoSpeak" class="secondary">🔊 Auto‑Vorlesen: AUS</button>
+    <button id="btnMic" class="secondary">🎙️ Spracheingabe: START</button>
+  </div>
+  <div class="note">Spracheingabe funktioniert am zuverlässigsten in Chrome über HTTPS.</div>
 
   <div class="chatbox" id="chat"></div>
   <div class="bar">
     <input id="input" type="text" placeholder="Ihre Nachricht … (z. B. „langsam“ oder „was bedeutet Drainage?“)" />
     <button id="send">Senden</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="nextPatient()">➡️ Weiter</button>
+    <button onclick="prevPatient()">⬅️ Zurück</button>
+    <button onclick="speakSlow()">🐢 Langsam</button>
+    <button onclick="addMessage(lastBot,'bot')">🔁 Wiederholen</button>
+    <button onclick="help()">ℹ️ Hilfe</button>
+  </div>
+
+  <div class="glossary">
+    <button onclick="explain('palliativ')">Palliativ</button>
+    <button onclick="explain('Thromboseprophylaxe')">Thromboseprophylaxe</button>
+    <button onclick="explain('Drainage')">Drainage</button>
+    <button onclick="explain('Mobilisation')">Mobilisation</button>
+    <button onclick="explain('Flüssigkeitsbilanz')">Flüssigkeitsbilanz</button>
+    <button onclick="explain('Diuretika')">Diuretika</button>
+    <button onclick="explain('Sättigung')">Sättigung</button>
   </div>
 </div>
 
@@ -56,13 +85,6 @@ const patients = [
     fast: "Herr Santos mit Herzinsuffizienz, leichte Ödeme. Diuretika nach Plan, tägliche Gewichts- und Flüssigkeitsbilanz. Achten Sie auf Atemnot, Ziel-Sättigung ≥ 94 %.",
     slow: "Bei Herrn Santos liegt eine Herzschwäche vor. Er hat leichte Wassereinlagerungen an den Unterschenkeln. Bitte geben Sie die entwässernden Medikamente nach Plan. Erfassen Sie täglich sein Gewicht und die Flüssigkeitsbilanz. Beobachten Sie ihn auf Atemnot. Ziel ist eine Sauerstoffsättigung von mindestens 94 %.",
   },
-  // Optional vierter Patient – auskommentieren, falls nicht gewünscht
-  // {
-  //   room: "104",
-  //   name: "Frau Novak",
-  //   fast: "Frau Novak mit Pneumonie, Tag 2 der Antibiotikatherapie. Atemtraining und Inhalation, SpO₂-Ziel 92–96 % bei O₂ über Nasenbrille 2 L/min.",
-  //   slow: "Frau Novak hat eine Lungenentzündung und erhält seit zwei Tagen Antibiotika. Bitte führen Sie Atemtraining und Inhalationen durch. Wenn nötig, geben Sie Sauerstoff über die Nasenbrille mit zwei Litern pro Minute. Ziel ist eine Sauerstoffsättigung zwischen 92 und 96 %.",
-  // },
 ];
 
 const glossary = {
@@ -70,7 +92,7 @@ const glossary = {
   "thromboseprophylaxe": "Maßnahmen (oft Spritzen), die Blutgerinnsel verhindern sollen.",
   "drainage": "Ein Schlauch, der Flüssigkeit aus einer Wunde ableitet; wird entfernt, wenn kaum noch Sekret kommt.",
   "mobilisation": "Geplantes, sicheres Aufstehen und Bewegen der Patientin oder des Patienten.",
-  "flüssigkeitsbilanz": "Gegenüberstellung von Aufgenommener und Ausgeschiedener Flüssigkeit pro Tag.",
+  "flüssigkeitsbilanz": "Gegenüberstellung von aufgenommener und ausgeschiedener Flüssigkeit pro Tag.",
   "diuretika": "Entwässernde Medikamente, die die Urinausscheidung erhöhen.",
   "sättigung": "Sauerstoffsättigung im Blut (SpO₂), gemessen mit dem Pulsoximeter."
 };
@@ -79,9 +101,13 @@ const glossary = {
 const chat = document.getElementById('chat');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
+const btnSpeakLast = document.getElementById('btnSpeakLast');
+const btnAutoSpeak = document.getElementById('btnAutoSpeak');
+const btnMic = document.getElementById('btnMic');
 
 let current = 0;       // aktueller Patient
 let lastBot = "";      // letzte Bot-Nachricht
+let autoSpeak = false; // automatische Sprachausgabe
 
 function addMessage(text, sender='bot') {
   const div = document.createElement('div');
@@ -89,73 +115,66 @@ function addMessage(text, sender='bot') {
   div.textContent = (sender === 'bot' ? '👩‍⚕️ Schwester Miriam: ' : '👤 ') + text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
-  if (sender === 'bot') lastBot = text;
-}
-
-function intro() {
-  addMessage("Guten Morgen! Ich beginne mit der Übergabe. Schreiben Sie „weiter“, um zum nächsten Zimmer zu gehen. Schreiben Sie „langsam“, wenn ich wiederholen soll. Für Begriffe: „was bedeutet …?“");
-  speakFast();
-}
-
-function speakFast() {
-  const p = patients[current];
-  addMessage(`Zimmer ${p.room} – ${p.name}: ${p.fast}`);
-}
-
-function speakSlow() {
-  const p = patients[current];
-  addMessage(`Ich wiederhole langsamer: Zimmer ${p.room} – ${p.name}. ${p.slow}`);
-}
-
-function prevPatient() {
-  current = (current - 1 + patients.length) % patients.length;
-  speakFast();
-}
-
-function nextPatient() {
-  current = (current + 1) % patients.length;
-  speakFast();
-}
-
-function explain(term) {
-  const key = term.toLowerCase().normalize('NFD').replace(/[^\wäöüß]/g,'');
-  let found = null;
-  for (const k in glossary) {
-    const norm = k.toLowerCase().normalize('NFD').replace(/[^\wäöüß]/g,'');
-    if (key.includes(norm) || norm.includes(key)) { found = k; break; }
+  if (sender === 'bot') {
+    lastBot = text;
+    if (autoSpeak) speak(text);
   }
-  if (found) addMessage(`${found[0].toUpperCase()+found.slice(1)}: ${glossary[found]}`);
-  else addMessage("Diesen Begriff habe ich nicht im Glossar. Fragen Sie gern anders oder nennen Sie einen anderen Begriff.");
 }
 
-function help() {
-  addMessage("Befehle: „weiter“ (nächster Patient) · „zurück“ (vorheriges Zimmer) · „langsam“ (Wiederholung in B1) · „wiederholen“ (letzte Aussage) · „was bedeutet …?“ (Begriffe erklären) · „hilfe“ (diese Übersicht).");
+function speak(text) {
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'de-DE'; u.rate = 0.98;
+    window.speechSynthesis.speak(u);
+  } catch (e) { console.error(e); }
 }
 
-sendBtn.addEventListener('click', handleInput);
-input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleInput(); });
+let recognition=null, recognizing=false;
+function initSTT(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return null;
+  const rec=new SR(); rec.lang='de-DE';
+  rec.onresult=(e)=>{const t=e.results[0][0].transcript;addMessage(t,'user');routeInput(t);};
+  rec.onend=()=>{recognizing=false;btnMic.textContent='🎙️ Spracheingabe: START';};
+  return rec;
+}
+function toggleSTT(){
+  if(!recognition)recognition=initSTT();
+  if(!recognition){alert('Spracheingabe nicht unterstützt. Bitte Chrome nutzen.');return;}
+  if(recognizing){recognition.stop();recognizing=false;btnMic.textContent='🎙️ Spracheingabe: START';}
+  else{recognition.start();recognizing=true;btnMic.textContent='🛑 Spracheingabe: STOP';}
+}
 
-function handleInput() {
-  const text = input.value.trim();
-  if (!text) return;
-  addMessage(text, 'user');
-  input.value='';
+function intro(){ addMessage("Guten Morgen! Ich beginne mit der Übergabe. Nutzen Sie Eingabe oder Buttons."); speakFast(); }
+function speakFast(){const p=patients[current]; addMessage(`Zimmer ${p.room} – ${p.name}: ${p.fast}`);}
+function speakSlow(){const p=patients[current]; addMessage(`Ich wiederhole langsamer: Zimmer ${p.room} – ${p.name}. ${p.slow}`);}
+function prevPatient(){current=(current-1+patients.length)%patients.length;speakFast();}
+function nextPatient(){current=(current+1)%patients.length;speakFast();}
+function explain(term){
+  const key=term.toLowerCase().normalize('NFD').replace(/[^\wäöüß]/g,'');
+  let found=null;
+  for(const k in glossary){const norm=k.toLowerCase().normalize('NFD').replace(/[^\wäöüß]/g,'');if(key.includes(norm)||norm.includes(key)){found=k;break;}}
+  if(found) addMessage(`${found[0].toUpperCase()+found.slice(1)}: ${glossary[found]}`);
+  else addMessage("Diesen Begriff habe ich nicht im Glossar.");
+}
+function help(){addMessage("Befehle: weiter · zurück · langsam · wiederholen · was bedeutet …? Oder nutzen Sie die Buttons unten.");}
 
-  const t = text.toLowerCase();
+sendBtn.onclick=handleInput; input.onkeydown=(e)=>{if(e.key==='Enter')handleInput();};
+btnSpeakLast.onclick=()=>{if(lastBot) speak(lastBot);};
+btnAutoSpeak.onclick=()=>{autoSpeak=!autoSpeak;btnAutoSpeak.textContent=autoSpeak?'🔊 Auto‑Vorlesen: EIN':'🔊 Auto‑Vorlesen: AUS';};
+btnMic.onclick=toggleSTT;
 
-  // Routing
-  if (t.includes('weiter') || t.includes('nächste') || t.includes('naechste')) return setTimeout(nextPatient, 400);
-  if (t.includes('zurück') || t.includes('zurueck') || t.includes('vorher')) return setTimeout(prevPatient, 400);
-  if (t.includes('langsam')) return setTimeout(speakSlow, 400);
-  if (t.includes('wiederholen')) return setTimeout(() => addMessage(lastBot || "Ich wiederhole gern, aber mir liegt keine letzte Aussage vor."), 300);
-  if (t.startsWith('was bedeutet')) {
-    const term = text.split(/was bedeutet/i)[1] || '';
-    return setTimeout(() => explain(term.trim()), 400);
-  }
-  if (t.includes('hilfe') || t.includes('help')) return setTimeout(help, 300);
-
-  // Falls nichts passt:
-  setTimeout(() => addMessage("Ich habe Sie verstanden. Sie können „weiter“, „langsam“, „zurück“, „wiederholen“ oder „was bedeutet …?“ schreiben."), 300);
+function handleInput(){const t=input.value.trim();if(!t)return;addMessage(t,'user');input.value='';routeInput(t);}
+function routeInput(text){
+  const t=text.toLowerCase();
+  if(t.includes('weiter')||t.includes('nächste')||t.includes('naechste')) return nextPatient();
+  if(t.includes('zurück')||t.includes('zurueck')||t.includes('vorher')) return prevPatient();
+  if(t.includes('langsam')) return speakSlow();
+  if(t.includes('wiederholen')) return addMessage(lastBot||'Ich wiederhole gern.','bot');
+  if(t.startsWith('was bedeutet')) return explain(text.split(/was bedeutet/i)[1]||'');
+  if(t.includes('hilfe')) return help();
+  addMessage("Ich habe Sie verstanden. Nutzen Sie bitte die Steuer-Buttons oder schreiben Sie: weiter, zurück, langsam, wiederholen, was bedeutet …?");
 }
 
 // Start
